@@ -1,12 +1,16 @@
 webstrate.on("loaded", function(webstrateId) {
     var slideShow = document.getElementById("main");
+    var slidesStructure = document.getElementById("slidesStructure");
+    var slidesNotes = document.getElementById("slidesNotes");
     var newBlock = document.getElementById("newSlide");
     var styleTitle = document.getElementById("activateTitle");
     var styleSubtitle = document.getElementById("activateSubtitle");
+    var activeSlideNote = slidesStructure.getElementsByClassName("active")[0];
     var activeSlideInMain;
     var titleStyle = false;
     var styleEnabled;
 
+    // show the active slide
     function showActiveSlide() {
         // get the element having the active class
         var activeSlide = document.getElementById("active");
@@ -14,7 +18,7 @@ webstrate.on("loaded", function(webstrateId) {
         // take its classes
         var className = activeSlide.className;
 
-        // among the children of main, display the corresponding div
+        // among the children of main, display the appropriate div
         activeSlideInMain = document.querySelector("." + className + ".slide");
         if(activeSlideInMain) {
             // set his attribute hidden to false
@@ -27,7 +31,38 @@ webstrate.on("loaded", function(webstrateId) {
                 }
             }
         }
+
+        // do the same for slide notes
+        showActiveSlideNotes();
         
+    }
+
+    // show active slide notes
+    function showActiveSlideNotes() {
+        // get the element having the active class
+        const classNames = activeSlideNote.className;
+
+        // hide it for now to avoid multiple repaints and reflows
+        slidesNotes.setAttribute("hidden", "");
+
+        let slideNumber;
+        for(let i=1; i<slidesNotes.childElementCount; i++) {
+            // hide the other divs notes. start from 1 to not take the slide title
+            if(!classNames.includes(slidesNotes.children[i].className)) {
+                slidesNotes.children[i].setAttribute("hidden", "");
+            }
+            else {
+                // show active slide notes
+                slidesNotes.children[i].removeAttribute("hidden");
+                slideNumber = i;
+            }
+        }
+
+        // print slide title
+        document.getElementById("slideTitle").innerText = "Slide " + slideNumber.toString();
+        
+        // repaint
+        slidesNotes.removeAttribute("hidden");
     }
 
     // create a new slide
@@ -35,6 +70,8 @@ webstrate.on("loaded", function(webstrateId) {
         // count the current number of p element in slides
         var allSlides = document.getElementById("slides");
         var nbSlidesCreated = allSlides.childElementCount - 1;
+
+        /* ___ on the slide show ___ */
 
         // remove the active id to the current slide
         document.getElementById("active").removeAttribute("id");
@@ -46,6 +83,7 @@ webstrate.on("loaded", function(webstrateId) {
         // add the click listener to toggle the slide show
         document.getElementById("active").addEventListener("click", (event) => {
             toggleSlideShow(event.target);
+            showActiveSlide();
         });
 
         // create the div in the slideshow + give it the necessary attributes
@@ -58,7 +96,32 @@ webstrate.on("loaded", function(webstrateId) {
 
         // set it as the main slide
         activeSlideInMain = slideShow.lastChild;
-        console.log("Title style value : ", titleStyle);
+
+        /* ___ on the notes ___ */
+
+        // remove class active to the current slide
+        slidesStructure.getElementsByClassName("active")[0].classList.remove("active");
+
+        let slideCreatedString = nbSlidesCreated.toString();
+
+        // create a new note
+        var newNoteInSummary = "<p class='slide-" + nbSlidesCreated.toString() + " active'>" + "Slide " + slideCreatedString + "</p>";
+        slidesStructure.insertAdjacentHTML("beforeend", newNoteInSummary);
+
+        // set it as the main slide note
+        activeSlideNote = slidesStructure.lastChild;
+
+        // add the click listener to toggle the slide note state
+        slidesStructure.lastChild.addEventListener("click", (event) => {
+            toggleSlideNoteState(event.target);
+            showActiveSlideNotes();
+        });
+
+        // create notes
+        var newNotes = document.createElement("div");
+        newNotes.className = "slide-" + nbSlidesCreated.toString();
+        newNotes.setAttribute("contenteditable", "");
+        slidesNotes.appendChild(newNotes);
     
         if(titleStyle) {
             handleTitleType(styleEnabled);
@@ -69,7 +132,16 @@ webstrate.on("loaded", function(webstrateId) {
     function toggleSlideShow(selectedSlide) {
         document.getElementById("active").removeAttribute("id");
         selectedSlide.setAttribute("id", "active");
-        showActiveSlide();
+    }
+
+    // show the selected slide's notes
+    function toggleSlideNoteState(selectedSlideNote) {
+        // remove class name active to the current active element
+        activeSlideNote.classList.remove("active");
+
+        // set the selected slide's note class name to active
+        selectedSlideNote.classList.add("active");
+        activeSlideNote = selectedSlideNote;
     }
 
     function toggleTitleState() {
@@ -79,6 +151,12 @@ webstrate.on("loaded", function(webstrateId) {
     // define the title's style of the slide
     function handleTitleType(styleClicked) {
         if(!titleStyle) {
+            // remove the active class name if present
+            const parent = document.getElementById("editor");
+            const child = parent.getElementsByClassName("active");
+            if(child.length > 0) {
+                child[0].removeAttribute("class");
+            }
             return;
         }
 
@@ -116,17 +194,12 @@ webstrate.on("loaded", function(webstrateId) {
                 // insert it at the main slide position
                 activeSlideInMain.insertAdjacentHTML("beforebegin", `<ol></ol>`);
 
-                // get the list
-                parent = activeSlideInMain.previousSibling;
                 console.log("Parent");
                 console.log(parent);
             }
-            else if(parentName == "div" && list_elements.includes(previousSibling)) {
-                console.log("case2");
-                // get the list
-                parent = activeSlideInMain.previousElementSibling;
-                console.log(parent);
-            }
+            
+            // get the list
+            parent = activeSlideInMain.previousElementSibling;
             console.log("case3");
             parent.insertAdjacentHTML("beforeend", "<li></li>");
 
@@ -138,9 +211,15 @@ webstrate.on("loaded", function(webstrateId) {
     }
 
     function init() {
+        // add the click listener to the very first slide note
+        slidesStructure.children[0].addEventListener("click", (event) => toggleSlideNoteState(event.target));
+
         // add the click listener to the very first slide
         const slides = document.querySelector("#slides");
-        slides.children[1].addEventListener("click", (event) => toggleSlideShow(event.target));
+        slides.children[1].addEventListener("click", (event) => { 
+            toggleSlideShow(event.target);
+            showActiveSlide();
+        });
 
         // handle the new slide creation event
         newBlock.addEventListener("click", () => {
