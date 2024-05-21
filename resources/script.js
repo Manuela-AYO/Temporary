@@ -25,9 +25,10 @@ webstrate.on("loaded", function(webstrateId) {
             activeSlideInMain.removeAttribute("hidden");
 
             // hide the other divs
-            for(let i=0; i<slideShow.childElementCount; i++) {
-                if(!slideShow.children[i].className.includes(className)) {
-                    slideShow.children[i].setAttribute("hidden", "true");
+            let children = document.getElementsByClassName("slide");
+            for(let i=0; i<children.length; i++) {
+                if(!children[i].className.includes(className)) {
+                    children[i].setAttribute("hidden", "true");
                 }
             }
         }
@@ -46,14 +47,15 @@ webstrate.on("loaded", function(webstrateId) {
         slidesNotes.setAttribute("hidden", "");
 
         let slideNumber;
-        for(let i=1; i<slidesNotes.childElementCount; i++) {
-            // hide the other divs notes. start from 1 to not take the slide title
-            if(!classNames.includes(slidesNotes.children[i].className)) {
-                slidesNotes.children[i].setAttribute("hidden", "");
+        let children = document.getElementsByClassName("slideNote");
+        for(let i=0; i<children.length; i++) {
+            // hide the other divs notes
+            if(!classNames.includes(children[i].className[0])) {
+                children[i].setAttribute("hidden", "");
             }
             else {
                 // show active slide notes
-                slidesNotes.children[i].removeAttribute("hidden");
+                children[i].removeAttribute("hidden");
                 slideNumber = i;
             }
         }
@@ -119,7 +121,7 @@ webstrate.on("loaded", function(webstrateId) {
 
         // create notes
         var newNotes = document.createElement("div");
-        newNotes.className = "slide-" + nbSlidesCreated.toString();
+        newNotes.className = "slide-" + nbSlidesCreated.toString() + " slideNote";
         newNotes.setAttribute("contenteditable", "");
         slidesNotes.appendChild(newNotes);
     
@@ -173,8 +175,7 @@ webstrate.on("loaded", function(webstrateId) {
             // check if the active slide is already in a list
             var parent = activeSlideInMain.parentElement;
             var parentName = parent.nodeName.toLowerCase();
-            console.log("The parent");
-            console.log(parent);
+            
             if(activeSlideInMain.previousElementSibling) {
                 previousSibling = activeSlideInMain.previousElementSibling.nodeName.toLowerCase();
             }
@@ -182,31 +183,29 @@ webstrate.on("loaded", function(webstrateId) {
                 previousSibling = "None";
             }
 
-            console.log(activeSlideInMain);
-
-            console.log("Previous sibling : ");
-            console.log(activeSlideInMain.previousElementSibling);
-            console.log(previousSibling);
-
             // if not, put it in a list
             if(parentName == "div" && !list_elements.includes(previousSibling)) {
-                console.log("case1");
                 // insert it at the main slide position
                 activeSlideInMain.insertAdjacentHTML("beforebegin", `<ol></ol>`);
 
-                console.log("Parent");
-                console.log(parent);
+                // do the same in the personal notes
+                activeSlideNote.insertAdjacentHTML("beforebegin", `<ol></ol>`);
             }
             
-            // get the list
+            // get the list - the variable name parent is used here to show that this list tag 
+            // will be its new parent
             parent = activeSlideInMain.previousElementSibling;
-            console.log("case3");
+            var parentInNotes = activeSlideNote.previousElementSibling;
+
             parent.insertAdjacentHTML("beforeend", "<li></li>");
+            parentInNotes.insertAdjacentHTML("beforeend", `<li></li>`);
 
             // insert the slide in the list
             var listItem = parent.lastChild;
             listItem.appendChild(activeSlideInMain); 
-            console.log("parent");
+
+            var listItemInNote = parentInNotes.lastChild;
+            listItemInNote.appendChild(activeSlideNote);
         }
     }
 
